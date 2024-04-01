@@ -18,6 +18,10 @@
 		{
 			"Name": "PakLoader",
 			"Enabled": true
+		},
+		{
+			"Name": "RenderDocPlugin",
+			"Enabled": true
 		}
 	]
 }
