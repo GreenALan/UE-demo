@@ -5,11 +5,11 @@ void MainVS(in float4 InPostion : ATTRIBUTE0, out float4 Output : SV_POSITION)
 	Output = InPostion;
 }
 
-// float4 SimpleColor;
+float4 SimpleColor;
 float4 MainPS() : SV_Target0
 {
 	// float4 Color = FMyUnifrom.SimpleColor;
-	return float4(1.0, 0.0, 0.0, 1.0);
+	return SimpleColor;
 	// return float4(SimpleColor,SimpleColor,SimpleColor,1.0);
 	// if (SimpleColor == 0)
 	// {
