@@ -1,34 +1,26 @@
-﻿#include "/Engine/Public/Platform.ush"
+﻿
+#include "/Engine/Public/Platform.ush"
  
-void MainVS(in float4 InPostion : ATTRIBUTE0, out float4 Output : SV_POSITION)
+void MainVS(
+	in float3 InPostion : ATTRIBUTE0, 
+	in float2 UV : ATTRIBUTE1,
+	out float2 OutUV : TEXCOORD0,
+	out float4 Output : SV_POSITION)
 {
-	Output = InPostion;
+	OutUV = UV;
+	Output = float4(InPostion, 1.0f);
 }
-
-// float4 SimpleColor;
-float4 MainPS() : SV_Target0
+ 
+Texture2D InTexture;
+SamplerState InTextureSampler;
+ 
+float4 MyColor;
+float MyColorScale;
+void MainPS(
+	in float2 UV : TEXCOORD0,
+	out float4 OutColor : SV_Target0)
 {
-	// float4 Color = FMyUnifrom.SimpleColor;
-	return float4(1.0, 0.0, 0.0, 1.0);
-	// return float4(SimpleColor,SimpleColor,SimpleColor,1.0);
-	// if (SimpleColor == 0)
-	// {
-	// 	return float4(1.0, 0.0, 0.0, 1.0);
-	// }
-	//
-	// if (SimpleColor == 1)
-	// {
-		// return float4(1.0, 1.0, 0.0, 1.0);
-	// }
-	//
-	// if (SimpleColor == 2)
-	// {
-	// 	return float4(0.0, 1.0, 0.0, 1.0);
-	// }
-	//
-	// if (SimpleColor == 3)
-	// {
-	// 	return float4(1.0, 1.0, 1.0, 1.0);
-	// }
-	
+	float4 TextureColor = InTexture.Sample(InTextureSampler, UV);
+	OutColor = MyColor * TextureColor * MyColorScale;
+	//return float4(1.0f, 1.0f, 1.0f, 1.0f);
 }
