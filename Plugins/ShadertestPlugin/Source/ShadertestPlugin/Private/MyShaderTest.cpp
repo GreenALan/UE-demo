@@ -50,11 +50,19 @@ public:
     
 };  
 
-BEGIN_GLOBAL_SHADER_PARAMETER_STRUCT(FMyUniformStructData, )
-SHADER_PARAMETER(FVector4, SimpleColor)
-END_GLOBAL_SHADER_PARAMETER_STRUCT()
+// BEGIN_GLOBAL_SHADER_PARAMETER_STRUCT(FMyUniformStructData, )
+// SHADER_PARAMETER(FVector4, SimpleColor)
+// END_GLOBAL_SHADER_PARAMETER_STRUCT()
 
-IMPLEMENT_GLOBAL_SHADER_PARAMETER_STRUCT(FMyUniformStructData, "FMyUnifrom");
+BEGIN_UNIFORM_BUFFER_STRUCT(FMyUniformStructData, )  
+SHADER_PARAMETER(FVector4, ColorOne)  
+SHADER_PARAMETER(FVector4, ColorTwo)  
+SHADER_PARAMETER(FVector4, ColorThree)  
+SHADER_PARAMETER(FVector4, ColorFour)  
+SHADER_PARAMETER(uint32, ColorIndex)  
+END_UNIFORM_BUFFER_STRUCT()
+
+IMPLEMENT_GLOBAL_SHADER_PARAMETER_STRUCT(FMyUniformStructData, "FMyUniform");
 
 class FShaderTestPS : public FGlobalShader  
 {
@@ -69,8 +77,8 @@ public:
     {  
         Color.Bind(Initializer.ParameterMap, TEXT("MyColor"));
         ColorScale.Bind(Initializer.ParameterMap, TEXT("MyColorScale"));
-        Texture.Bind(Initializer.ParameterMap, TEXT("InTexture"));
-        TextureSampler.Bind(Initializer.ParameterMap, TEXT("InTextureSampler"));
+        Texture.Bind(Initializer.ParameterMap, TEXT("Texture"));
+        TextureSampler.Bind(Initializer.ParameterMap, TEXT("TextureSampler"));
     }
     
     static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)  
@@ -80,7 +88,8 @@ public:
     
     void SetParameters(  
        FRHICommandListImmediate& RHICmdList,  
-       const FTexture* TextureValue, const FLinearColor& InColor, float InColorScale 
+       const FTexture* TextureValue, const FLinearColor& InColor, float InColorScale,
+       FMyShaderStructData& ShaderStructData
        )  
     {
         // FShaderTestPS::FParameters* PassParameters = GraphBuilder.AllocParameters<FShaderTestPS::FParameters>();
@@ -89,6 +98,15 @@ public:
         SetTextureParameter(RHICmdList, PS, Texture, TextureSampler, TextureValue);
         SetShaderValue(RHICmdList, PS, Color, InColor);
         SetShaderValue(RHICmdList, PS, ColorScale, InColorScale);
+    	FMyUniformStructData UniformData;  
+    	UniformData.ColorOne = ShaderStructData.ColorOne;  
+    	UniformData.ColorTwo = ShaderStructData.ColorTwo;  
+    	UniformData.ColorThree = ShaderStructData.ColorThree;  
+    	UniformData.ColorFour = ShaderStructData.ColorFour;  
+    	UniformData.ColorIndex = ShaderStructData.ColorIndex;
+
+    	TUniformBufferRef<FMyUniformStructData> UniformBuffer = CreateUniformBufferImmediate(UniformData, UniformBuffer_MultiFrame);
+    	SetUniformBufferParameter(RHICmdList, PS, GetUniformBufferParameter<FMyUniformStructData>(), UniformBuffer);
     }
 
 private:
@@ -96,7 +114,6 @@ private:
     LAYOUT_FIELD(FShaderParameter, ColorScale);
     LAYOUT_FIELD(FShaderResourceParameter, Texture);
     LAYOUT_FIELD(FShaderResourceParameter, TextureSampler);
-    // FShaderParameter SimpleColorVal;  
 
 };
 
@@ -149,13 +166,15 @@ public:
 TGlobalResource<FMyTestVertexDeclaration> GCustomVertexDeclaration;
 
 
+
 static void DrawTestShaderRenderTarget_RenderThread(  
     FRHICommandListImmediate& RHICmdList,   
     FTextureRenderTargetResource* OutputRenderTargetResource,  
     ERHIFeatureLevel::Type FeatureLevel,
     FTexture* InTextureResource,
     FName TextureRenderTargetName,  
-    FLinearColor MyColor  
+    FLinearColor MyColor,
+    FMyShaderStructData MyShaderStructData
 )  
 {
    check(IsInRenderingThread());
@@ -189,7 +208,7 @@ static void DrawTestShaderRenderTarget_RenderThread(
 		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
  
 		// update shader uniform parameters
-		PixelShader->SetParameters(RHICmdList, InTextureResource, MyColor, 1.0);
+		PixelShader->SetParameters(RHICmdList, InTextureResource, MyColor, 1.0, MyShaderStructData);
  
 		// Create VertexBuffer and setup
 		static const uint32 VERTEX_SIZE = sizeof(FCustomVertex) * 4;
@@ -217,7 +236,8 @@ void UTestShaderBlueprintLibrary::DrawTestShaderRenderTarget(
     UTextureRenderTarget2D* OutputRenderTarget,   
     AActor* Ac,  
     FLinearColor MyColor,
-    UTexture* MyTexture
+    UTexture* MyTexture,
+    FMyShaderStructData MyShaderStructData
 )  
 {
     UE_LOG(LogTemp, Warning, TEXT("harylv: DrawTestShaderRenderTarget"));
@@ -241,9 +261,9 @@ void UTestShaderBlueprintLibrary::DrawTestShaderRenderTarget(
     // FTextureReferenceRHIRef TextureRHI = MyTexture->TextureReference.TextureReferenceRHI;
 
     ENQUEUE_RENDER_COMMAND(CaptureCommand)(  
-        [TextureRenderTargetResource,TextureSource, FeatureLevel, MyColor, TextureRenderTargetName](FRHICommandListImmediate& RHICmdList)  
+        [TextureRenderTargetResource,TextureSource, FeatureLevel, MyColor, TextureRenderTargetName, MyShaderStructData](FRHICommandListImmediate& RHICmdList)  
         {
-            DrawTestShaderRenderTarget_RenderThread(RHICmdList,TextureRenderTargetResource, FeatureLevel, TextureSource, TextureRenderTargetName, MyColor);  
+            DrawTestShaderRenderTarget_RenderThread(RHICmdList,TextureRenderTargetResource, FeatureLevel, TextureSource, TextureRenderTargetName, MyColor, MyShaderStructData);  
         }  
     );  
  

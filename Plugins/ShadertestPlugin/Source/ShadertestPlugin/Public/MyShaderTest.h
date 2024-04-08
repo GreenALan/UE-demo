@@ -5,7 +5,23 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "MyShaderTest.generated.h"
 
+USTRUCT(BlueprintType)
+struct FMyShaderStructData  
+{
+	GENERATED_BODY()
 
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = ShaderData)  
+	FLinearColor ColorOne;  
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = ShaderData)  
+	FLinearColor ColorTwo;  
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = ShaderData)  
+	FLinearColor ColorThree;  
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = ShaderData)  
+	FLinearColor ColorFour;  
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = ShaderData)  
+	int32 ColorIndex;  
+	
+};
 
 UCLASS()
 class SHADERTESTPLUGIN_API UTestShaderBlueprintLibrary : public UBlueprintFunctionLibrary
@@ -14,7 +30,7 @@ class SHADERTESTPLUGIN_API UTestShaderBlueprintLibrary : public UBlueprintFuncti
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "ShaderTestPlugin")
-	static void DrawTestShaderRenderTarget(class UTextureRenderTarget2D* OutputRenderTarget, AActor* Ac, FLinearColor MyColor, UTexture* MyTexture);
+	static void DrawTestShaderRenderTarget(class UTextureRenderTarget2D* OutputRenderTarget, AActor* Ac, FLinearColor MyColor, UTexture* MyTexture, FMyShaderStructData MyShaderStructData);
 
 	UFUNCTION(BlueprintCallable, Category = "ShaderTestPlugin")
 	static bool TestBluePrint()
@@ -24,12 +40,4 @@ public:
 };
 
 
-USTRUCT(BlueprintType)
-struct FMyShaderData
-{
-	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = ShaderData)
-	FVector4 MyColor;
-	
-};

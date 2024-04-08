@@ -1,26 +1,46 @@
-﻿
-#include "/Engine/Public/Platform.ush"
- 
-void MainVS(
-	in float3 InPostion : ATTRIBUTE0, 
-	in float2 UV : ATTRIBUTE1,
-	out float2 OutUV : TEXCOORD0,
-	out float4 Output : SV_POSITION)
-{
-	OutUV = UV;
-	Output = float4(InPostion, 1.0f);
-}
- 
-Texture2D InTexture;
-SamplerState InTextureSampler;
- 
-float4 MyColor;
-float MyColorScale;
-void MainPS(
-	in float2 UV : TEXCOORD0,
-	out float4 OutColor : SV_Target0)
-{
-	float4 TextureColor = InTexture.Sample(InTextureSampler, UV);
-	OutColor = MyColor * TextureColor * MyColorScale;
-	//return float4(1.0f, 1.0f, 1.0f, 1.0f);
-}
+﻿#include "/Engine/Public/Platform.ush"  
+#include "/Engine/Private/Common.ush"  
+  
+Texture2D Texture;  
+SamplerState TextureSampler;  
+  
+float4 SimpleColor;  
+  
+void MainVS(  
+	in float4 InPosition : ATTRIBUTE0,  
+	in float2 InUV : ATTRIBUTE1,  
+	out float2 OutUV : TEXCOORD0,  
+	out float4 OutPosition : SV_POSITION  
+	)  
+{  
+	// screenspace position from vb  
+	OutPosition = InPosition;  
+	OutUV = InUV;  
+  
+}  
+  
+void MainPS(  
+	in float2 UV : TEXCOORD0,  
+	out float4 OutColor : SV_Target0  
+	)  
+{  
+	OutColor = float4(Texture.Sample(TextureSampler, UV.xy).rgb, 1.0f);
+	// return;
+	switch (FMyUniform.ColorIndex)  
+	{  
+	case 0 :  
+		OutColor *= FMyUniform.ColorOne;  
+		break;  
+	case 1:  
+		OutColor *= FMyUniform.ColorTwo;  
+		break;  
+	case 2:  
+		OutColor *= FMyUniform.ColorThree;  
+		break;  
+	case 3:  
+		OutColor *= FMyUniform.ColorFour;  
+		break;  
+	}
+	// OutColor.a = 1.0;
+      
+}  
