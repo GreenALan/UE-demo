@@ -10,7 +10,7 @@ public class MyProject : ModuleRules
 
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
-			"Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay", "OpenGLDrv", "PakLoader","ShadertestPlugin"
+			"Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay", "OpenGLDrv", "PakLoader","ShadertestPlugin", "GraphicTools"
 		});
 	}
 }
