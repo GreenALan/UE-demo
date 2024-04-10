@@ -84,8 +84,8 @@ static void DrawCheckerBoard_RenderThread(
 	DispatchComputeShader(RHICmdList, ComputeShader, GroupSizeX, GroupSizeY, 1);
 	ComputeShader->UnsetParameters(RHICmdList, GUAV);
 
-	RHICmdList.TransitionResource(ERHIAccess::CopySrc, GSurfaceTexture2D);
-	RHICmdList.TransitionResource(ERHIAccess::CopyDest, RenderTargetTexture);
+	// RHICmdList.TransitionResource(ERHIAccess::CopySrc, GSurfaceTexture2D);
+	// RHICmdList.TransitionResource(ERHIAccess::CopyDest, RenderTargetTexture);
 
 	FRHICopyTextureInfo CopyInfo;
 	RHICmdList.CopyTexture(GSurfaceTexture2D, RenderTargetTexture, CopyInfo);
