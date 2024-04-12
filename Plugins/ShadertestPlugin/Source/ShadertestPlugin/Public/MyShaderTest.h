@@ -33,6 +33,13 @@ public:
 	static void DrawTestShaderRenderTarget(class UTextureRenderTarget2D* OutputRenderTarget, AActor* Ac, FLinearColor MyColor, UTexture* MyTexture, FMyShaderStructData MyShaderStructData);
 
 	UFUNCTION(BlueprintCallable, Category = "ShaderTestPlugin")
+	static void UseMyComputeShader(
+		UTextureRenderTarget2D* OutputRenderTarget,
+		AActor* Ac,
+		FMyShaderStructData ShaderStructData
+		);
+
+	UFUNCTION(BlueprintCallable, Category = "ShaderTestPlugin")
 	static bool TestBluePrint()
 	{
 		return true;
