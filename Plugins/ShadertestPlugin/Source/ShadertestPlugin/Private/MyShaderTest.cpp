@@ -131,16 +131,17 @@ public:
 	
 	FMyComputeShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FGlobalShader(Initializer)
 	{
-		OutputSurface.Bind(Initializer.ParameterMap, TEXT("OutputSurface"));
+		OutputSurface1.Bind(Initializer.ParameterMap, TEXT("OutputSurface"));
 	}
 
-	void SetSurfaces(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIRef OutputSurfaceUAV, FMyShaderStructData& ShaderStructData)
+	void SetSurfaces(FRHICommandList& RHICmdList, FTexture2DRHIRef &InOutputSurfaceValue,
+		FUnorderedAccessViewRHIRef& UAV, FMyShaderStructData& ShaderStructData)
 	{
 		FRHIComputeShader* ShaderRHI = RHICmdList.GetBoundComputeShader();
-		if (OutputSurface.IsBound())
-		{
-			RHICmdList.SetUAVParameter(ShaderRHI, OutputSurface.GetBaseIndex(), OutputSurfaceUAV);
-		}
+		
+		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, UAV);
+		OutputSurface1.SetTexture(RHICmdList, ShaderRHI, InOutputSurfaceValue, UAV);
+	
 		
 		FMyUniformStructData UniformData;  
 		UniformData.ColorOne = ShaderStructData.ColorOne;  
@@ -148,30 +149,31 @@ public:
 		UniformData.ColorThree = ShaderStructData.ColorThree;  
 		UniformData.ColorFour = ShaderStructData.ColorFour;  
 		UniformData.ColorIndex = ShaderStructData.ColorIndex;
-
+		
 		TUniformBufferRef<FMyUniformStructData> UniformBuffer = CreateUniformBufferImmediate(UniformData, UniformBuffer_MultiFrame);
 		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FMyUniformStructData>(), UniformBuffer);
 
 	}
 
-	void UnbindBuffers(FRHICommandList& RHICmdList)
+	void UnbindBuffers(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIRef& UAV)
 	{
 		FRHIComputeShader* ShaderRHI = RHICmdList.GetBoundComputeShader();
 
-		if (OutputSurface.IsBound())
+		if (OutputSurface1.IsBound())
 		{
-			RHICmdList.SetUAVParameter(ShaderRHI, OutputSurface.GetBaseIndex(), FUnorderedAccessViewRHIRef());
+			RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, UAV);
+			OutputSurface1.UnsetUAV(RHICmdList, RHICmdList.GetBoundComputeShader());
 		}
 	}
 
 private:
-	LAYOUT_FIELD(FShaderResourceParameter, OutputSurface);
+	LAYOUT_FIELD(FRWShaderParameter, OutputSurface1);
 };
 
 
-IMPLEMENT_SHADER_TYPE(, FMyComputeShader, TEXT("/Plugin/ShadertestPlugin/Private/MyShader.usf"), TEXT("MainCS"), SF_Compute)  
-IMPLEMENT_SHADER_TYPE(, FShaderTestVS, TEXT("/Plugin/ShadertestPlugin/Private/MyShader.usf"), TEXT("MainVS"), SF_Vertex)  
-IMPLEMENT_SHADER_TYPE(, FShaderTestPS, TEXT("/Plugin/ShadertestPlugin/Private/MyShader.usf"), TEXT("MainPS"), SF_Pixel)  
+ IMPLEMENT_SHADER_TYPE(, FMyComputeShader, TEXT("/Plugin/ShadertestPlugin/Private/MyShader.usf"), TEXT("MainCS"), SF_Compute)  
+ IMPLEMENT_SHADER_TYPE(, FShaderTestVS, TEXT("/Plugin/ShadertestPlugin/Private/MyShader.usf"), TEXT("MainVS"), SF_Vertex)  
+ IMPLEMENT_SHADER_TYPE(, FShaderTestPS, TEXT("/Plugin/ShadertestPlugin/Private/MyShader.usf"), TEXT("MainPS"), SF_Pixel)  
 
 struct FCustomVertex
 {
@@ -313,7 +315,7 @@ void UTestShaderBlueprintLibrary::DrawTestShaderRenderTarget(
     ENQUEUE_RENDER_COMMAND(CaptureCommand)(  
         [TextureRenderTargetResource,TextureSource, FeatureLevel, MyColor, TextureRenderTargetName, MyShaderStructData](FRHICommandListImmediate& RHICmdList)  
         {
-            DrawTestShaderRenderTarget_RenderThread(RHICmdList,TextureRenderTargetResource, FeatureLevel, TextureSource->TextureRHI, TextureRenderTargetName, MyColor, MyShaderStructData);  
+           // DrawTestShaderRenderTarget_RenderThread(RHICmdList,TextureRenderTargetResource, FeatureLevel, TextureSource->TextureRHI, TextureRenderTargetName, MyColor, MyShaderStructData);  
         }  
     );  
  
@@ -334,17 +336,22 @@ static void UseComputeShader_RenderThread(
 
 	int32 SizeX = OutputRenderTargetResource->GetSizeX();
 	int32 SizeY = OutputRenderTargetResource->GetSizeY();
+	
 	FRHIResourceCreateInfo CreateInfo;
-
-	FTexture2DRHIRef Texture = RHICreateTexture2D(SizeX, SizeY, PF_A32B32G32R32F, 1, 1, TexCreate_ShaderResource | TexCreate_UAV, CreateInfo);
-	FUnorderedAccessViewRHIRef TextureUAV = RHICreateUnorderedAccessView(Texture);
-	ComputeShader->SetSurfaces(RHICmdList, TextureUAV, ShaderStructData);
+	FTexture2DRHIRef RenderTargetTexture = OutputRenderTargetResource->GetRenderTargetTexture();
+	FTexture2DRHIRef GSurfaceTexture2D = RHICreateTexture2D(RenderTargetTexture->GetSizeX(), RenderTargetTexture->GetSizeY(), PF_FloatRGBA, 1, 1, TexCreate_ShaderResource | TexCreate_UAV, CreateInfo);
+	FUnorderedAccessViewRHIRef TextureUAV = RHICreateUnorderedAccessView(GSurfaceTexture2D);
+	ComputeShader->SetSurfaces(RHICmdList, RenderTargetTexture, TextureUAV, ShaderStructData);
 	DispatchComputeShader(RHICmdList, ComputeShader, SizeX/32, SizeY/32, 1);
-	ComputeShader->UnbindBuffers(RHICmdList);
+	ComputeShader->UnbindBuffers(RHICmdList, TextureUAV);
+
+
+	// FRHICopyTextureInfo CopyInfo;
+	// RHICmdList.CopyTexture(GSurfaceTexture2D, RenderTargetTexture, CopyInfo);
 
 
 	FName Test("harylv");
-	DrawTestShaderRenderTarget_RenderThread(RHICmdList,OutputRenderTargetResource, FeatureLevel, static_cast<FTextureRHIRef>(Texture), Test, FLinearColor(), ShaderStructData);  
+	DrawTestShaderRenderTarget_RenderThread(RHICmdList,OutputRenderTargetResource, FeatureLevel, static_cast<FTextureRHIRef>(GSurfaceTexture2D), Test, FLinearColor(), ShaderStructData);  
 
 
 }

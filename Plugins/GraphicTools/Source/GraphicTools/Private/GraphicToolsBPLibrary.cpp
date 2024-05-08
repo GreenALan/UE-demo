@@ -35,7 +35,7 @@ public:
 
 	void SetParameters(
 		FRHICommandList& RHICmdList,
-		FTexture2DRHIRef &InOutputSurfaceValue,
+		FTexture2DRHIRef& InOutputSurfaceValue,
 		FUnorderedAccessViewRHIRef& UAV
 	)
 	{
